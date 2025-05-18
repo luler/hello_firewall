@@ -6,14 +6,22 @@ import (
 	"gin_base/app/helper/response_helper"
 	"gin_base/app/middleware"
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 func InitRouter(e *gin.Engine) {
 	e.NoRoute(func(context *gin.Context) {
 		response_helper.Common(context, 404, "路由不存在")
 	})
+	e.GET("/api/README.md", func(context *gin.Context) {
+		context.File("./README.md")
+	})
+	//接口
 	api := e.Group("/api")
 	api.GET("/test", common.Test)
+	//swagger页面
+	api.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	//ip管理
 	api.POST("/banIp", common.BanIp)
 	api.POST("/unBanIp", common.UnBanIp)

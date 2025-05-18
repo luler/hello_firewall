@@ -18,7 +18,15 @@ import (
 	"regexp"
 )
 
-// 登录
+// @Summary 登录接口
+// @Description  用户登录，获取访问授权
+// @Tags 授权相关接口
+// @Accept x-www-form-urlencoded
+// @Produce  json
+// @Param name formData string true "账号"
+// @Param password formData string true "密码"
+// @Success 200
+// @Router /api/login [post]
 func Login(c *gin.Context) {
 	type Param struct {
 		Name     string `validate:"required,max=50" label:"账号"`

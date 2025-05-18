@@ -51,7 +51,6 @@ export default {
   'menu.editor.koni': '拓扑编辑器',
 
   //自定义菜单
-  'menu.自定义ID': '自定义ID',
-  'menu.授权码': '授权码',
+  'menu.IP封禁列表': 'IP封禁列表',
   'menu.接口文档': '接口文档',
 };

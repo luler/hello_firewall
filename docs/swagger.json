@@ -1,0 +1,103 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "当前页面用于展示项目一些开放的接口",
+        "title": "接口文档",
+        "termsOfService": "http://swagger.io/terms/",
+        "contact": {
+            "name": "开发人员",
+            "url": "https://cas.luler.top/",
+            "email": "1207032539@qq.com"
+        },
+        "license": {
+            "name": "Apache 2.0",
+            "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+        },
+        "version": "1.0"
+    },
+    "paths": {
+        "/api/banIp": {
+            "post": {
+                "description": "封禁ip接口",
+                "consumes": [
+                    "application/x-www-form-urlencoded"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "IP封禁相关接口"
+                ],
+                "summary": "封禁ip接口",
+                "parameters": [
+                    {
+                        "type": "array",
+                        "description": "ip数组，格式:[127.0.0.1]",
+                        "name": "ips",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "封禁协议,tcp udp icmp",
+                        "name": "protocol",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "封禁端口号",
+                        "name": "port",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "封禁原因",
+                        "name": "reason",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/api/login": {
+            "post": {
+                "description": "用户登录，获取访问授权",
+                "consumes": [
+                    "application/x-www-form-urlencoded"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "授权相关接口"
+                ],
+                "summary": "登录接口",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "账号",
+                        "name": "name",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "密码",
+                        "name": "password",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        }
+    }
+}

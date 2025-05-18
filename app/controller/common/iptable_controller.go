@@ -12,11 +12,21 @@ import (
 	"gorm.io/gorm"
 )
 
-// 封禁ip接口
+// @Summary 封禁ip接口
+// @Description  封禁ip接口
+// @Tags IP封禁相关接口
+// @Accept x-www-form-urlencoded
+// @Produce  json
+// @Param ips formData array true "ip数组，格式:[127.0.0.1]"
+// @Param protocol formData string false "封禁协议,tcp udp icmp"
+// @Param port formData int false "封禁端口号"
+// @Param reason formData string false "封禁原因"
+// @Success 200
+// @Router /api/banIp [post]
 func BanIp(c *gin.Context) {
 	type Param struct {
 		Ips      []string `validate:"required,min=1,max=100" label:"ip数组"`
-		Protocol string   `validate:"omitempty,oneof=tcp udp icmp" label:"通信协议"`
+		Protocol string   `validate:"omitempty,oneof=tcp udp icmp" label:"封禁协议"`
 		Port     int      `validate:"omitempty,gte=1,lte=65535" label:"封禁端口号"`
 		Minute   int      `validate:"omitempty,gte=0" label:"封禁时长分钟"`
 		Reason   string   `validate:"omitempty,max=255" label:"封禁原因"`

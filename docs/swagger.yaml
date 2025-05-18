@@ -1,0 +1,69 @@
+info:
+  contact:
+    email: 1207032539@qq.com
+    name: 开发人员
+    url: https://cas.luler.top/
+  description: 当前页面用于展示项目一些开放的接口
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: 接口文档
+  version: "1.0"
+paths:
+  /api/banIp:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 封禁ip接口
+      parameters:
+      - description: ip数组，格式:[127.0.0.1]
+        in: formData
+        name: ips
+        required: true
+        type: array
+      - description: 封禁协议,tcp udp icmp
+        in: formData
+        name: protocol
+        type: string
+      - description: 封禁端口号
+        in: formData
+        name: port
+        type: integer
+      - description: 封禁原因
+        in: formData
+        name: reason
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: 封禁ip接口
+      tags:
+      - IP封禁相关接口
+  /api/login:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 用户登录，获取访问授权
+      parameters:
+      - description: 账号
+        in: formData
+        name: name
+        required: true
+        type: string
+      - description: 密码
+        in: formData
+        name: password
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: 登录接口
+      tags:
+      - 授权相关接口
+swagger: "2.0"
