@@ -3,16 +3,24 @@ package route
 import (
 	"gin_base/app/controller"
 	"gin_base/app/controller/common"
-	"gin_base/app/helper/response_helper"
 	"gin_base/app/middleware"
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
+	"net/http"
 )
 
 func InitRouter(e *gin.Engine) {
+	//e.NoRoute(func(context *gin.Context) {
+	//	response_helper.Common(context, 404, "路由不存在")
+	//})
+	//前端路由
+	e.Static("/helloFirewall", "./web/dist/helloFirewall")
 	e.NoRoute(func(context *gin.Context) {
-		response_helper.Common(context, 404, "路由不存在")
+		context.File("./web/dist/helloFirewall/index.html")
+	})
+	e.GET("/", func(context *gin.Context) {
+		context.Redirect(http.StatusMovedPermanently, "/helloFirewall/ipRule")
 	})
 	e.GET("/api/README.md", func(context *gin.Context) {
 		context.File("./README.md")
