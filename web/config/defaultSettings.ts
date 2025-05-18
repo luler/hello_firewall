@@ -16,7 +16,7 @@ const Settings: ProLayoutProps & {
   fixedHeader: false,
   fixSiderbar: true,
   colorWeak: false,
-  title: 'ID生成服务',
+  title: 'IP防火墙',
   pwa: true,
   logo: extraConfig.routePrefix + 'favicon.ico',
   iconfontUrl: '',

@@ -23,16 +23,10 @@ export default [
     ],
   },
   {
-    path: '/idRule',
-    name: '自定义ID',
+    path: '/ipRule',
+    name: 'IP封禁列表',
     icon: 'FieldBinaryOutlined',
-    component: './IdRule/IdRule',
-  },
-  {
-    path: '/AuthKey',
-    name: '授权码',
-    icon: 'KeyOutlined',
-    component: './AuthKey/AuthKey',
+    component: './IpRule/IpRule',
   },
   {
     path: '/readme',
@@ -43,7 +37,7 @@ export default [
   },
   {
     path: '/',
-    redirect: '/idRule',
+    redirect: '/ipRule',
   },
   {
     path: '*',

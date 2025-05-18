@@ -2,6 +2,7 @@ package logic
 
 import (
 	"fmt"
+	"gin_base/app/helper/db_helper"
 	"gin_base/app/helper/exception_helper"
 	"gin_base/app/model"
 	"os/exec"
@@ -119,7 +120,10 @@ func (m *IPTablesManager) ApplyRule(rule *model.IPRule) error {
 }
 
 // RebuildRules 重建所有规则
-func (m *IPTablesManager) RebuildRules(rules []*model.IPRule) error {
+func (m *IPTablesManager) RebuildRules() error {
+	//删除后查询所有规则，重置iptables规则
+	var rules []*model.IPRule
+	db_helper.Db().Where("Status = 1").Find(&rules)
 	// 先清除所有规则
 	if err := m.ClearAllRules(); err != nil {
 		return err
@@ -127,10 +131,8 @@ func (m *IPTablesManager) RebuildRules(rules []*model.IPRule) error {
 
 	// 应用所有启用的规则
 	for _, rule := range rules {
-		if rule.Status == 1 {
-			if err := m.ApplyRule(rule); err != nil {
-				return err
-			}
+		if err := m.ApplyRule(rule); err != nil {
+			return err
 		}
 	}
 

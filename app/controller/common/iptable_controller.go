@@ -16,7 +16,7 @@ import (
 func BanIp(c *gin.Context) {
 	type Param struct {
 		Ips      []string `validate:"required,min=1,max=100" label:"ip数组"`
-		Protocol string   `validate:"required,oneof=tcp udp icmp" label:"通信协议"`
+		Protocol string   `validate:"omitempty,oneof=tcp udp icmp" label:"通信协议"`
 		Port     int      `validate:"omitempty,gte=1,lte=65535" label:"封禁端口号"`
 		Minute   int      `validate:"omitempty,gte=0" label:"封禁时长分钟"`
 		Reason   string   `validate:"omitempty,max=255" label:"封禁原因"`
@@ -76,15 +76,23 @@ func BanIp(c *gin.Context) {
 // 解封ip接口
 func UnBanIp(c *gin.Context) {
 	type Param struct {
-		Ips      []string `validate:"required,min=1,max=100" label:"ip数组"`
+		Ids      []int    `validate:"omitempty,min=1,max=100" label:"id数组"`
+		Ips      []string `validate:"omitempty,min=1,max=100" label:"ip数组"`
 		Protocol string   `validate:"omitempty,oneof=tcp udp icmp" label:"通信协议"`
 		Port     int      `validate:"omitempty,gte=1,lte=65535" label:"封禁端口号"`
 	}
 	var param Param
 	request_helper.ParamRawJsonStruct(c, &param)
-
+	if len(param.Ids) == 0 && len(param.Ips) == 0 {
+		exception_helper.CommonException("id数组和ip数组不能同时为空")
+	}
 	// 动态构建查询条件
-	query := db_helper.Db().Where("ip IN ?", param.Ips)
+	query := db_helper.Db()
+	if len(param.Ids) > 0 {
+		query = query.Where("id IN ?", param.Ids)
+	} else {
+		query = query.Where("ip IN ?", param.Ips)
+	}
 
 	if param.Protocol != "" {
 		query = query.Where("protocol = ?", param.Protocol)
@@ -98,12 +106,8 @@ func UnBanIp(c *gin.Context) {
 	if err != nil {
 		exception_helper.CommonException(fmt.Sprintf("删除IP规则失败: %v", err))
 	}
-	//删除后查询所有规则，重置iptables规则
-	var rules []*model.IPRule
-	db_helper.Db().Find(&rules)
 
-	err = logic.GetIPTablesManager().RebuildRules(rules)
-
+	err = logic.GetIPTablesManager().RebuildRules()
 	if err != nil {
 		exception_helper.CommonException(err.Error())
 	}
@@ -111,18 +115,53 @@ func UnBanIp(c *gin.Context) {
 }
 
 // 解封ip接口
-func GetBanIpList(c *gin.Context) {
+func ChangeStatus(c *gin.Context) {
 	type Param struct {
-		Ip string `validate:"omitempty" label:"ip关键字"`
+		Id     int `validate:"required" label:"id"`
+		Status int `validate:"omitempty,oneof=0 1" label:"状态"`
 	}
 	var param Param
 	request_helper.ParamRawJsonStruct(c, &param)
+
+	db_helper.Db().Transaction(func(tx *gorm.DB) error {
+		// 动态构建查询条件
+		var ipRule model.IPRule
+		if err := tx.Where("id = ?", param.Id).First(&ipRule).Error; err != nil {
+			exception_helper.CommonException(fmt.Sprintf("查询IP规则失败: %v", err))
+		}
+		ipRule.Status = int8(param.Status)
+		//执行数据库更新
+		if err := tx.Save(&ipRule).Error; err != nil {
+			exception_helper.CommonException(fmt.Sprintf("更新IP规则失败: %v", err))
+		}
+
+		err := logic.GetIPTablesManager().RebuildRules()
+		if err != nil {
+			exception_helper.CommonException(err.Error())
+		}
+		return nil
+	})
+
+	response_helper.Success(c, "解封IP成功")
+}
+
+// 解封ip接口
+func GetBanIpList(c *gin.Context) {
+	type Param struct {
+		Ip     string `validate:"omitempty" label:"ip关键字"`
+		Status string `validate:"omitempty" label:"状态"`
+	}
+	var param Param
+	request_helper.ParamGetStruct(c, &param)
 
 	// 动态构建查询条件
 	query := db_helper.Db().Model(&model.IPRule{})
 
 	if param.Ip != "" {
 		query = query.Where("ip LIKE ?", "%"+param.Ip+"%")
+	}
+	if param.Status != "" {
+		query = query.Where("status = ?", param.Status)
 	}
 
 	query = query.Order("id desc")

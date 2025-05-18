@@ -85,7 +85,7 @@ const Login: React.FC = () => {
           }}
           logo={<img alt="logo" src={getFullPath("/favicon.ico")}/>}
           title={defaultSettings.title}
-          subTitle="高性能生成snowflake id、sonyflake id、uuid v1、uuid v4、xid、ksuid以及自定义ID的服务"
+          subTitle="可视化ip防火墙管理系统，在线管理你的服务器安全"
           initialValues={{
             autoLogin: true,
           }}
