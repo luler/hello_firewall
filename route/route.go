@@ -21,7 +21,7 @@ func InitRouter(e *gin.Engine) {
 	api.GET("/getBanIpList", common.GetBanIpList)
 
 	//登录相关
-	api.POST("/login", middleware.IpRateLimit(1, 1), controller.Login)
+	api.POST("/login", middleware.IpRateLimit(0.1, 5), controller.Login)
 	api.GET("/casLogin", controller.CasLogin)
 	auth := api.Group("", middleware.Auth())
 	auth.POST("/resetPassword", controller.ResetPassword)

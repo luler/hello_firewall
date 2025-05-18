@@ -1,11 +1,11 @@
 package middleware
 
 import (
+	"fmt"
 	"gin_base/app/helper/exception_helper"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/time/rate"
 	"net/http"
-	"strconv"
 	"time"
 )
 
@@ -18,10 +18,10 @@ type IpRateLimitStruct struct {
 var limiters = make(map[string]*IpRateLimitStruct)
 
 // 限制速度
-func IpRateLimit(r int, b int) gin.HandlerFunc {
+func IpRateLimit(r float64, b int) gin.HandlerFunc {
 	return func(context *gin.Context) {
 		ip := context.ClientIP()
-		key := ip + "_" + strconv.Itoa(r) + "_" + strconv.Itoa(b)
+		key := fmt.Sprintf("%v_%v_%v", ip, r, b)
 		limiter, exist := limiters[key]
 		if !exist {
 			limiter = &IpRateLimitStruct{
