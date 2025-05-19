@@ -33,7 +33,7 @@ func BanIp(c *gin.Context) {
 	}
 	var param Param
 	request_helper.ParamRawJsonStruct(c, &param)
-	if param.Protocol == "icmp" { //icmp不支持设置端口
+	if param.Protocol == "icmp" || param.Protocol == "" { //icmp、不设置协议不支持设置端口
 		param.Port = 0
 	}
 

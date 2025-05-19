@@ -123,7 +123,7 @@ func (m *IPTablesManager) ApplyRule(rule *model.IPRule) error {
 func (m *IPTablesManager) RebuildRules() error {
 	//删除后查询所有规则，重置iptables规则
 	var rules []*model.IPRule
-	db_helper.Db().Where("Status = 1").Find(&rules)
+	db_helper.Db().Where("status = 1").Find(&rules)
 	// 先清除所有规则
 	if err := m.ClearAllRules(); err != nil {
 		return err
