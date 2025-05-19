@@ -96,26 +96,34 @@ func (m *IPTablesManager) ClearAllRules() error {
 
 // ApplyRule 应用单条规则
 func (m *IPTablesManager) ApplyRule(rule *model.IPRule) error {
-	if rule.Status == 0 {
-		return nil // 跳过禁用的规则
-	}
-
-	args := []string{"-A", m.Chain, "-s", rule.IP}
+	// 构建基本参数
+	baseArgs := []string{"-s", rule.IP}
 
 	// 添加协议和端口（如果有）
 	if rule.Protocol != "" {
-		args = append(args, "-p", rule.Protocol)
+		baseArgs = append(baseArgs, "-p", rule.Protocol)
 
 		if rule.Port > 0 {
-			args = append(args, "--dport", fmt.Sprintf("%d", rule.Port))
+			baseArgs = append(baseArgs, "--dport", fmt.Sprintf("%d", rule.Port))
 		}
 	}
 
-	// 添加动作和标识
-	args = append(args, "-j", "DROP", "-m", "comment", "--comment", m.Signature)
+	// 添加标识
+	baseArgs = append(baseArgs, "-m", "comment", "--comment", m.Signature)
 
-	// 执行命令
-	cmd := exec.Command("iptables", args...)
+	var cmd *exec.Cmd
+	if rule.Status == 0 {
+		// 如果规则被禁用，则删除规则
+		deleteArgs := append([]string{"-D", m.Chain}, baseArgs...)
+		deleteArgs = append(deleteArgs, "-j", "DROP")
+		cmd = exec.Command("iptables", deleteArgs...)
+	} else {
+		// 如果规则启用，则添加规则
+		addArgs := append([]string{"-A", m.Chain}, baseArgs...)
+		addArgs = append(addArgs, "-j", "DROP")
+		cmd = exec.Command("iptables", addArgs...)
+	}
+
 	return cmd.Run()
 }
 

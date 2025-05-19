@@ -145,9 +145,9 @@ func ChangeStatus(c *gin.Context) {
 			exception_helper.CommonException(fmt.Sprintf("更新IP规则失败: %v", err))
 		}
 
-		err := logic.GetIPTablesManager().RebuildRules()
-		if err != nil {
-			exception_helper.CommonException(err.Error())
+		if err := logic.GetIPTablesManager().ApplyRule(&ipRule); err != nil {
+			//忽略报错,打印到控制台即可
+			fmt.Println("更新IP规则失败: %v", err)
 		}
 		return nil
 	})
