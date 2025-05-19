@@ -33,6 +33,12 @@ func StartServer() {
 	middleware.InitMiddleware(engine)
 	//初始化路由
 	route.InitRouter(engine)
+	//自定义端口
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "3000" // 默认端口
+	}
+	port = ":" + port
 
-	engine.Run() // listen and serve on 0.0.0.0:8080
+	engine.Run(port) // listen and serve on 0.0.0.0:8080
 }

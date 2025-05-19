@@ -6,6 +6,7 @@ services:
     network_mode: host
     restart: always
     environment:
+      - PORT=3000          #服务端口
       - ADMIN_NAME=admin      #管理员账号
       - ADMIN_PASSWORD=admin  #管理员登录密码
       - JWT_SECRET=Hw_KtnqHJ   #页面访问token加密秘钥，自定义一个复杂的
