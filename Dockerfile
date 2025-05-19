@@ -28,4 +28,6 @@ COPY --from=builder /app/main .
 #设置容器暴露端口
 EXPOSE 3000
 
+ENTRYPOINT []
+
 CMD ["./main","serve"]
