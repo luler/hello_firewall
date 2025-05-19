@@ -1,7 +1,7 @@
 version: "3"
 services:
   hello_firewall:
-    build: .
+    image: ghcr.io/luler/hello_firewall:latest
     privileged: true
     network_mode: host
     restart: always
