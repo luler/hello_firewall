@@ -10,6 +10,7 @@ import (
 	"gin_base/app/model"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+	"strings"
 )
 
 // @Summary 封禁ip接口
@@ -17,28 +18,33 @@ import (
 // @Tags IP封禁相关接口
 // @Accept x-www-form-urlencoded
 // @Produce  json
-// @Param ips formData array true "ip数组，格式:[127.0.0.1]"
-// @Param protocol formData string false "封禁协议,tcp udp icmp"
-// @Param port formData int false "封禁端口号"
+// @Param Authorization header string true "Bearer token"
+// @Param ips formData string true "ip数据，多个用英文逗号隔开，格式:127.0.1,192.168.1.1"
+// @Param protocol formData string false "封禁协议,不传-全部协议，指定协议：tcp udp icmp"
+// @Param port formData int false "封禁端口号,0-全端口（默认），1-65535（指定端口，传封禁协议时才有效）"
 // @Param reason formData string false "封禁原因"
 // @Success 200
 // @Router /api/banIp [post]
 func BanIp(c *gin.Context) {
 	type Param struct {
-		Ips      []string `validate:"required,min=1,max=100" label:"ip数组"`
-		Protocol string   `validate:"omitempty,oneof=tcp udp icmp" label:"封禁协议"`
-		Port     int      `validate:"omitempty,gte=1,lte=65535" label:"封禁端口号"`
-		Minute   int      `validate:"omitempty,gte=0" label:"封禁时长分钟"`
-		Reason   string   `validate:"omitempty,max=255" label:"封禁原因"`
+		Ips      string `validate:"required" label:"ip数据"`
+		Protocol string `validate:"omitempty,oneof=tcp udp icmp" label:"封禁协议"`
+		Port     int    `validate:"omitempty,gte=1,lte=65535" label:"封禁端口号"`
+		Minute   int    `validate:"omitempty,gte=0" label:"封禁时长分钟"`
+		Reason   string `validate:"omitempty,max=255" label:"封禁原因"`
 	}
 	var param Param
-	request_helper.ParamRawJsonStruct(c, &param)
+	request_helper.InputStruct(c, &param)
+	ips := strings.Split(param.Ips, ",")
+	if len(ips) > 100 {
+		exception_helper.CommonException("IP数量不能超过100个")
+	}
 	if param.Protocol == "icmp" || param.Protocol == "" { //icmp、不设置协议不支持设置端口
 		param.Port = 0
 	}
 
 	err := db_helper.Db().Transaction(func(tx *gorm.DB) error {
-		for _, ip := range param.Ips {
+		for _, ip := range ips {
 			//存在则激活规则
 			var existingRule model.IPRule
 			err := tx.Where("ip = ? AND protocol = ? AND port = ?", ip, param.Protocol, param.Port).First(&existingRule).Error
@@ -86,14 +92,21 @@ func BanIp(c *gin.Context) {
 // 解封ip接口
 func UnBanIp(c *gin.Context) {
 	type Param struct {
-		Ids      []int    `validate:"omitempty,min=1,max=100" label:"id数组"`
-		Ips      []string `validate:"omitempty,min=1,max=100" label:"ip数组"`
-		Protocol string   `validate:"omitempty,oneof=tcp udp icmp" label:"通信协议"`
-		Port     int      `validate:"omitempty,gte=1,lte=65535" label:"封禁端口号"`
+		Ids      []int  `validate:"omitempty,min=1,max=100" label:"id数组"`
+		Ips      string `validate:"omitempty" label:"ip数据"`
+		Protocol string `validate:"omitempty,oneof=tcp udp icmp" label:"通信协议"`
+		Port     int    `validate:"omitempty,gte=1,lte=65535" label:"封禁端口号"`
 	}
 	var param Param
-	request_helper.ParamRawJsonStruct(c, &param)
-	if len(param.Ids) == 0 && len(param.Ips) == 0 {
+	request_helper.InputStruct(c, &param)
+	ips := []string{}
+	if param.Ips != "" {
+		ips = strings.Split(param.Ips, ",")
+	}
+	if len(ips) > 100 {
+		exception_helper.CommonException("IP数量不能超过100个")
+	}
+	if len(param.Ids) == 0 && len(ips) == 0 {
 		exception_helper.CommonException("id数组和ip数组不能同时为空")
 	}
 	// 动态构建查询条件
@@ -101,7 +114,7 @@ func UnBanIp(c *gin.Context) {
 	if len(param.Ids) > 0 {
 		query = query.Where("id IN ?", param.Ids)
 	} else {
-		query = query.Where("ip IN ?", param.Ips)
+		query = query.Where("ip IN ?", ips)
 	}
 
 	if param.Protocol != "" {
@@ -131,7 +144,7 @@ func ChangeStatus(c *gin.Context) {
 		Status int `validate:"omitempty,oneof=0 1" label:"状态"`
 	}
 	var param Param
-	request_helper.ParamRawJsonStruct(c, &param)
+	request_helper.InputStruct(c, &param)
 
 	db_helper.Db().Transaction(func(tx *gorm.DB) error {
 		// 动态构建查询条件

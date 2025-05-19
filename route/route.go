@@ -30,18 +30,19 @@ func InitRouter(e *gin.Engine) {
 	api.GET("/test", common.Test)
 	//swagger页面
 	api.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
-	//ip管理
-	api.POST("/banIp", common.BanIp)
-	api.POST("/unBanIp", common.UnBanIp)
-	api.POST("/changeStatus", common.ChangeStatus)
-	api.GET("/getBanIpList", common.GetBanIpList)
 
 	//登录相关
 	api.POST("/login", middleware.IpRateLimit(0.1, 5), controller.Login)
 	api.GET("/casLogin", controller.CasLogin)
 	auth := api.Group("", middleware.Auth())
-	auth.POST("/resetPassword", controller.ResetPassword)
 	auth.POST("/test_auth", common.Test)
+	//ip管理
+	auth.POST("/banIp", common.BanIp)
+	auth.POST("/unBanIp", common.UnBanIp)
+	auth.POST("/changeStatus", common.ChangeStatus)
+	auth.GET("/getBanIpList", common.GetBanIpList)
+	//用户各相关
+	auth.POST("/resetPassword", controller.ResetPassword)
 	auth.GET("/getUserInfo", controller.GetUserInfo)
 
 }

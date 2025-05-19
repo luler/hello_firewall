@@ -39,21 +39,28 @@ const docTemplate = `{
                 "summary": "封禁ip接口",
                 "parameters": [
                     {
-                        "type": "array",
-                        "description": "ip数组，格式:[127.0.0.1]",
+                        "type": "string",
+                        "description": "Bearer token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "ip数据，多个用英文逗号隔开，格式:127.0.1,192.168.1.1",
                         "name": "ips",
                         "in": "formData",
                         "required": true
                     },
                     {
                         "type": "string",
-                        "description": "封禁协议,tcp udp icmp",
+                        "description": "封禁协议,不传-全部协议，指定协议：tcp udp icmp",
                         "name": "protocol",
                         "in": "formData"
                     },
                     {
                         "type": "integer",
-                        "description": "封禁端口号",
+                        "description": "封禁端口号,0-全端口（默认），1-65535（指定端口，传封禁协议时才有效）",
                         "name": "port",
                         "in": "formData"
                     },
