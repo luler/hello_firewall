@@ -6,6 +6,7 @@ services:
     network_mode: host
     restart: always
     environment:
+      - TZ=Asia/Shanghai  #时区
       - PORT=3000          #服务端口
       - ADMIN_NAME=admin      #管理员账号
       - ADMIN_PASSWORD=admin  #管理员登录密码
