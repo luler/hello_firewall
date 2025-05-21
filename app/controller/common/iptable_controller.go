@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"gin_base/app/helper/db_helper"
 	"gin_base/app/helper/exception_helper"
+	"gin_base/app/helper/helper"
 	"gin_base/app/helper/request_helper"
 	"gin_base/app/helper/response_helper"
 	"gin_base/app/logic"
@@ -11,6 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 	"strings"
+	"time"
 )
 
 // @Summary 封禁ip接口
@@ -22,16 +24,17 @@ import (
 // @Param ips formData string true "ip数据，多个用英文逗号隔开，格式:127.0.1,192.168.1.1"
 // @Param protocol formData string false "封禁协议,不传-全部协议，指定协议：tcp udp icmp"
 // @Param port formData int false "封禁端口号,0-全端口（默认），1-65535（指定端口，传封禁协议时才有效）"
+// @Param expiredAt formData int false "过期时间，不传则无过期时间，格式：2006-01-02 15:04:05"
 // @Param reason formData string false "封禁原因"
 // @Success 200
 // @Router /api/banIp [post]
 func BanIp(c *gin.Context) {
 	type Param struct {
-		Ips      string `validate:"required" label:"ip数据"`
-		Protocol string `validate:"omitempty,oneof=tcp udp icmp" label:"封禁协议"`
-		Port     int    `validate:"omitempty,gte=1,lte=65535" label:"封禁端口号"`
-		Minute   int    `validate:"omitempty,gte=0" label:"封禁时长分钟"`
-		Reason   string `validate:"omitempty,max=255" label:"封禁原因"`
+		Ips       string `validate:"required" label:"ip数据"`
+		Protocol  string `validate:"omitempty,oneof=tcp udp icmp" label:"封禁协议"`
+		Port      int    `validate:"omitempty,gte=1,lte=65535" label:"封禁端口号"`
+		ExpiredAt string `validate:"omitempty,datetime=2006-01-02 15:04:05" label:"过期时间"`
+		Reason    string `validate:"omitempty,max=255" label:"封禁原因"`
 	}
 	var param Param
 	request_helper.InputStruct(c, &param)
@@ -41,6 +44,13 @@ func BanIp(c *gin.Context) {
 	}
 	if param.Protocol == "icmp" || param.Protocol == "" { //icmp、不设置协议不支持设置端口
 		param.Port = 0
+	}
+	var expTime time.Time
+	if param.ExpiredAt != "" {
+		expTime, _ = time.ParseInLocation("2006-01-02 15:04:05", param.ExpiredAt, time.Local)
+		if expTime.Before(time.Now()) {
+			exception_helper.CommonException("过期时间必须大于当前时间")
+		}
 	}
 
 	err := db_helper.Db().Transaction(func(tx *gorm.DB) error {
@@ -67,11 +77,12 @@ func BanIp(c *gin.Context) {
 			}
 			//不存在就新增规则
 			ipRule := model.IPRule{
-				IP:       ip,
-				Protocol: param.Protocol,
-				Port:     param.Port,
-				Status:   1,
-				Reason:   param.Reason,
+				IP:        ip,
+				Protocol:  param.Protocol,
+				Port:      param.Port,
+				Status:    1,
+				Reason:    param.Reason,
+				ExpiredAt: expTime.Unix(),
 			}
 			if err := tx.Save(&ipRule).Error; err != nil {
 				return fmt.Errorf("保存IP规则失败: %v", err)
@@ -173,6 +184,7 @@ func GetBanIpList(c *gin.Context) {
 	type Param struct {
 		Ip     string `validate:"omitempty" label:"ip关键字"`
 		Status string `validate:"omitempty" label:"状态"`
+		Reason string `validate:"omitempty" label:"封禁原因"`
 	}
 	var param Param
 	request_helper.ParamGetStruct(c, &param)
@@ -183,6 +195,9 @@ func GetBanIpList(c *gin.Context) {
 	if param.Ip != "" {
 		query = query.Where("ip LIKE ?", "%"+param.Ip+"%")
 	}
+	if param.Reason != "" {
+		query = query.Where("reason LIKE ?", "%"+param.Reason+"%")
+	}
 	if param.Status != "" {
 		query = query.Where("status = ?", param.Status)
 	}
@@ -190,5 +205,12 @@ func GetBanIpList(c *gin.Context) {
 	query = query.Order("id desc")
 	//执行数据库删除
 	data := db_helper.AutoPage(c, query)
+	for _, item := range data["list"].([]map[string]interface{}) {
+		if expiredAt, ok := item["expired_at"].(int64); ok && expiredAt > 0 {
+			item["expired_at"] = helper.TimestampFormat(expiredAt)
+		} else {
+			item["expired_at"] = ""
+		}
+	}
 	response_helper.Success(c, "获取成功", data)
 }

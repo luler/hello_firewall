@@ -12,7 +12,7 @@ func MigrateCommand() *cobra.Command {
 		Short: "数据库迁移",
 		Run: func(cmd *cobra.Command, args []string) {
 			// 自动创建表
-			app.InitApp("migrate")
+			app.InitApp(app.InitTypeMigrate)
 		},
 	}
 

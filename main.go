@@ -11,7 +11,7 @@ import (
 
 func init() {
 	//项目初始化
-	app.InitApp("base")
+	app.InitApp(app.InitTypeBase, app.InitTypeCron)
 }
 
 // @title 接口文档

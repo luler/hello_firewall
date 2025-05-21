@@ -10,6 +10,8 @@ import {
 import {Button, Form, message, Popconfirm, Switch} from 'antd';
 import React, {useRef, useState} from 'react';
 import {requestGet, requestPost} from "@/utils/requestTool";
+import {ProFormDateTimePicker} from "@ant-design/pro-form";
+import moment from "moment";
 
 const Index: React.FC = () => {
   const [modalOpen, setmodalOpen] = useState(false)
@@ -72,6 +74,16 @@ const Index: React.FC = () => {
           </Popconfirm>
         );
       }
+    },
+    {
+      title: '封禁原因',
+      dataIndex: 'reason',
+      search: true,
+    },
+    {
+      title: '过期时间',
+      dataIndex: 'expired_at',
+      search: false,
     },
     {
       title: '创建时间',
@@ -246,6 +258,24 @@ const Index: React.FC = () => {
           label="封禁端口"
           placeholder="请输入"
           tooltip="不设置将封禁所有端口"
+        />
+        <ProFormDateTimePicker
+          name="expiredAt"
+          label="过期时间"
+          placeholder="请选择过期时间"
+          tooltip="不设置则永久有效"
+          fieldProps={{
+            format: 'YYYY-MM-DD HH:mm:ss',
+            showTime: {defaultValue: moment('00:00:00', 'HH:mm:ss')},
+            presets: [
+              {label: '5分钟', value: moment().add(5, 'minutes')},
+              {label: '半小时', value: moment().add(30, 'minutes')},
+              {label: '2小时', value: moment().add(2, 'hours')},
+              {label: '1天', value: moment().add(1, 'days')},
+              {label: '1周', value: moment().add(7, 'days')},
+              {label: '1个月', value: moment().add(1, 'months')}
+            ]
+          }}
         />
       </ModalForm>
     </PageContainer>
