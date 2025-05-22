@@ -65,6 +65,12 @@ const docTemplate = `{
                         "in": "formData"
                     },
                     {
+                        "type": "integer",
+                        "description": "过期时间，不传则无过期时间，格式：2006-01-02 15:04:05",
+                        "name": "expiredAt",
+                        "in": "formData"
+                    },
+                    {
                         "type": "string",
                         "description": "封禁原因",
                         "name": "reason",

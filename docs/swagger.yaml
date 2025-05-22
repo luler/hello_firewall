@@ -35,6 +35,10 @@ paths:
         in: formData
         name: port
         type: integer
+      - description: 过期时间，不传则无过期时间，格式：2006-01-02 15:04:05
+        in: formData
+        name: expiredAt
+        type: integer
       - description: 封禁原因
         in: formData
         name: reason
