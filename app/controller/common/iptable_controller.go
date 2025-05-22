@@ -148,7 +148,7 @@ func UnBanIp(c *gin.Context) {
 	response_helper.Success(c, "解封IP成功")
 }
 
-// 解封ip接口
+// 修改状态接口
 func ChangeStatus(c *gin.Context) {
 	type Param struct {
 		Id     int `validate:"required" label:"id"`
@@ -164,6 +164,9 @@ func ChangeStatus(c *gin.Context) {
 			exception_helper.CommonException(fmt.Sprintf("查询IP规则失败: %v", err))
 		}
 		ipRule.Status = int8(param.Status)
+		if ipRule.ExpiredAt <= time.Now().Unix() {
+			ipRule.ExpiredAt = 0
+		}
 		//执行数据库更新
 		if err := tx.Save(&ipRule).Error; err != nil {
 			exception_helper.CommonException(fmt.Sprintf("更新IP规则失败: %v", err))
@@ -176,10 +179,10 @@ func ChangeStatus(c *gin.Context) {
 		return nil
 	})
 
-	response_helper.Success(c, "解封IP成功")
+	response_helper.Success(c, "修改状态成功")
 }
 
-// 解封ip接口
+// 获取ip封禁列表接口
 func GetBanIpList(c *gin.Context) {
 	type Param struct {
 		Ip     string `validate:"omitempty" label:"ip关键字"`
