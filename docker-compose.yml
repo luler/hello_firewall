@@ -11,5 +11,8 @@ services:
       - ADMIN_NAME=admin      #管理员账号
       - ADMIN_PASSWORD=admin  #管理员登录密码
       - JWT_SECRET=Hw_KtnqHJ   #页面访问token加密秘钥，自定义一个复杂的
+      - IPTABLES_TARGET_CHAINS=INPUT,DOCKER-USER #iptables目标链
+      - DATABASE_DEFAULT_DRIVER=sqlite #数据库驱动
+      - DATABASE_DEFAULT_NAME=runtime/hello_firewall.sqlite #数据库文件路径
     volumes:
       - ./runtime:/app/runtime
