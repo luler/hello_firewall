@@ -5,6 +5,7 @@ import (
 	"gin_base/app/helper/db_helper"
 	"gin_base/app/helper/exception_helper"
 	"gin_base/app/model"
+	"os"
 	"os/exec"
 	"strings"
 	"sync"
@@ -36,31 +37,31 @@ func (m *IPTablesManager) InitChain() error {
 		}
 	}
 
-	// 无论链是否已经存在，都确保它在INPUT链的第一位
-	// 首先删除现有的规则（如果存在）
-	delCmd := exec.Command("bash", "-c", "iptables -D INPUT -j "+m.Chain+" -m comment --comment \""+m.Signature+"\" 2>/dev/null || true")
-	delCmd.Run() // 忽略错误，因为规则可能不存在
-	// 然后将链添加到INPUT链的第一位，并添加标识
-	linkCmd := exec.Command("iptables", "-I", "INPUT", "1", "-j", m.Chain,
-		"-m", "comment", "--comment", m.Signature)
-	if err := linkCmd.Run(); err != nil {
-		return fmt.Errorf("将规则链链接到INPUT链首位失败: %v", err)
+	// 从环境变量获取要链接的iptables链名称列表，默认为INPUT和DOCKER-USER
+	targetChains := []string{"INPUT"}
+	if envChains := os.Getenv("IPTABLES_TARGET_CHAINS"); envChains != "" {
+		targetChains = strings.Split(envChains, ",")
 	}
-
-	//DOCKER-USER链兼容
-	// 添加到DOCKER-USER链（如果存在）
-	checkDockerUserCmd := exec.Command("iptables", "-L", "DOCKER-USER")
-	if checkDockerUserCmd.Run() == nil { // 如果DOCKER-USER链存在
-
-		delDockerUserCmd := exec.Command("bash", "-c", "iptables -D DOCKER-USER -j "+m.Chain+" -m comment --comment \""+m.Signature+"\" 2>/dev/null || true")
-		delDockerUserCmd.Run() // 忽略错误，因为规则可能不存在
-
-		// 然后将链添加到INPUT链的第一位，并添加标识
-		linkDockerUserCmd := exec.Command("iptables", "-I", "DOCKER-USER", "1", "-j", m.Chain,
-			"-m", "comment", "--comment", m.Signature)
-		if err := linkDockerUserCmd.Run(); err != nil {
-			return fmt.Errorf("将规则链链接到DockerUser链首位失败: %v", err)
+	// 遍历所有目标链
+	for _, targetChain := range targetChains {
+		// 先检查目标链是否存在
+		checkChainCmd := exec.Command("iptables", "-L", targetChain)
+		if err := checkChainCmd.Run(); err != nil {
+			// 如果链不存在，跳过
+			continue
 		}
+
+		// 删除现有规则（如果存在）
+		delCmd := exec.Command("bash", "-c", "iptables -D "+targetChain+" -j "+m.Chain+" -m comment --comment \""+m.Signature+"\" 2>/dev/null || true")
+		delCmd.Run() // 忽略错误，因为规则可能不存在
+
+		// 将链添加到目标链的第一位，并添加标识
+		linkCmd := exec.Command("iptables", "-I", targetChain, "1", "-j", m.Chain,
+			"-m", "comment", "--comment", m.Signature)
+		if err := linkCmd.Run(); err != nil {
+			return fmt.Errorf("将规则链链接到%s链首位失败: %v", targetChain, err)
+		}
+
 	}
 
 	return nil
