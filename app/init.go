@@ -3,6 +3,7 @@ package app
 import (
 	"gin_base/app/helper/cron_helper"
 	"gin_base/app/helper/db_helper"
+	"gin_base/app/helper/helper"
 	"gin_base/app/helper/log_helper"
 	"gin_base/app/model"
 	"github.com/joho/godotenv"
@@ -28,7 +29,13 @@ func InitApp(initTypes ...string) {
 			cron_helper.InitCron()
 		case InitTypeMigrate:
 			// 自动创建表
-			db_helper.Db().Set("gorm:table_options", "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci").AutoMigrate(
+			connectName := "default"
+			db := db_helper.Db(connectName)
+			switch helper.GetAppConfig().Database[connectName].Driver {
+			case "mysql":
+				db.Set("gorm:table_options", "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci")
+			}
+			db.AutoMigrate(
 				&model.User{},
 				&model.IPRule{},
 			)

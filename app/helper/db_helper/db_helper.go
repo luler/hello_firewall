@@ -2,11 +2,15 @@ package db_helper
 
 import (
 	"fmt"
+	"gin_base/app/helper/exception_helper"
 	"gin_base/app/helper/helper"
+	"github.com/glebarez/sqlite"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 	"gorm.io/gorm/schema"
+	"os"
+	"path/filepath"
 	"sync"
 )
 
@@ -40,6 +44,24 @@ func initDb(connectName string) *gorm.DB {
 			helper.GetAppConfig().Database[connectName].Name,
 		) // 连接数据库
 		dialector = mysql.Open(dsn)
+	case "sqlite":
+		// SQLite数据库路径
+		dbPath := helper.GetAppConfig().Database[connectName].Name
+		if !filepath.IsAbs(dbPath) {
+			// 如果不是绝对路径，则相对于应用程序目录
+			appDir, _ := os.Getwd()
+			dbPath = filepath.Join(appDir, dbPath)
+		}
+
+		// 确保数据库文件所在目录存在
+		dbDir := filepath.Dir(dbPath)
+		if err := os.MkdirAll(dbDir, 0755); err != nil {
+			exception_helper.CommonException(fmt.Sprintf("无法创建SQLite数据库目录: %v", err))
+		}
+
+		dialector = sqlite.Open(dbPath)
+	default:
+		exception_helper.CommonException(fmt.Sprintf("不支持的数据库驱动: %s", helper.GetAppConfig().Database[connectName].Driver))
 	}
 
 	db, _ = gorm.Open(dialector, &gorm.Config{
