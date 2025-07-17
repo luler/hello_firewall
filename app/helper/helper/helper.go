@@ -17,22 +17,17 @@ func TimestampFormat(timestamp int64) string {
 // 过滤map[string]interface{}类型的数据
 func FilterMap(data map[string]interface{}, fields []string) map[string]interface{} {
 	//参数过滤
-	if len(fields) > 0 {
-		for key, _ := range data {
-			exist := false
-			for _, field := range fields {
-				if key == field {
-					exist = true
-					break
-				}
-			}
-			if !exist {
-				delete(data, key)
-			}
-		}
+	if len(fields) == 0 {
+		return data
 	}
 
-	return data
+	result := make(map[string]interface{})
+	for _, field := range fields {
+		if value, exists := data[field]; exists {
+			result[field] = value
+		}
+	}
+	return result
 }
 
 // 合并多个map[string]interface{}
