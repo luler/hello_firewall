@@ -214,6 +214,8 @@ func GetBanIpList(c *gin.Context) {
 		} else {
 			item["expired_at"] = ""
 		}
+		ipLocation, _ := helper.GetIPLocation(item["ip"].(string))
+		item["ip_location"] = strings.Replace(ipLocation.Raw, "|", "", -1)
 	}
 	response_helper.Success(c, "获取成功", data)
 }

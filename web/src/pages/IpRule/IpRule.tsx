@@ -7,7 +7,7 @@ import {
   ProFormTextArea,
   ProTable
 } from '@ant-design/pro-components';
-import {Button, Form, message, Popconfirm, Switch} from 'antd';
+import {Button, Form, message, Popconfirm, Switch, Tag} from 'antd';
 import React, {useRef, useState} from 'react';
 import {requestGet, requestPost} from "@/utils/requestTool";
 import {ProFormDateTimePicker} from "@ant-design/pro-form";
@@ -30,6 +30,12 @@ const Index: React.FC = () => {
     {
       title: 'IP',
       dataIndex: 'ip',
+      render: (ip, record) => {
+        return <div>
+          <div>{ip}</div>
+          <Tag>{record.ip_location}</Tag>
+        </div>
+      }
     },
     {
       title: '端口',
