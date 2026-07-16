@@ -4,6 +4,7 @@ import {
   PageContainer,
   ProFormDigit,
   ProFormSelect,
+  ProFormText,
   ProFormTextArea,
   ProTable
 } from '@ant-design/pro-components';
@@ -16,6 +17,7 @@ import moment from "moment";
 const Index: React.FC = () => {
   const [modalOpen, setmodalOpen] = useState(false)
   const [modelTitle, setModelTitle] = useState('新增封禁IP')
+  const [isEdit, setIsEdit] = useState(false)
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [form] = Form.useForm();
   const actionRef = useRef();
@@ -101,6 +103,20 @@ const Index: React.FC = () => {
       search: false,
       render: record => {
         return <>
+          <a onClick={() => {
+            form.resetFields()
+            form.setFieldsValue({
+              id: record.id,
+              ips: record.ip,
+              protocol: record.protocol,
+              port: record.port,
+              reason: record.reason,
+              expiredAt: record.expired_at ? moment(record.expired_at, 'YYYY-MM-DD HH:mm:ss') : undefined,
+            })
+            setIsEdit(true)
+            setModelTitle("编辑封禁IP")
+            setmodalOpen(true)
+          }}>编辑</a>
           <Popconfirm
             title='您确定要删除吗？'
             description='删除后，数据将无法恢复，请慎重！'
@@ -113,7 +129,7 @@ const Index: React.FC = () => {
               })
             }}
           >
-            <a style={{color: 'red',}}>删除</a>
+            <a style={{color: 'red', marginLeft: 16}}>删除</a>
           </Popconfirm>
         </>
       }
@@ -143,6 +159,7 @@ const Index: React.FC = () => {
           step: 100,
           minLength: 0,
         })
+        setIsEdit(false)
         setModelTitle("新增封禁IP")
         setmodalOpen(true)
       }}>
@@ -165,15 +182,20 @@ const Index: React.FC = () => {
       </Popconfirm>
     ];
   };
-  const getData = async (params: {}) => {
+  const getData = async (params: any) => {
     let value = {
       data: [],
       success: true,
       total: 0,
     }
-    params.page = params.current || 1
-    params.pageSize = params.pageSize || 10
-    await requestGet('/api/getBanIpList', params).then(res => {
+    // 构建后端需要的参数，不直接修改ProTable传入的params（避免污染其受控状态）
+    const {current, pageSize, ...rest} = params
+    const query = {
+      ...rest,
+      page: current || 1,
+      page_size: Math.min(pageSize || 10, 200),
+    }
+    await requestGet('/api/getBanIpList', query).then(res => {
       value.success = res.code === 200 ? true : false
       value.data = res.data.list || []
       value.total = res.data.total || 0
@@ -200,6 +222,11 @@ const Index: React.FC = () => {
         request={getData}
         toolBarRender={renderToolBar}
         actionRef={actionRef}
+        pagination={{
+          defaultPageSize: 10,
+          showSizeChanger: true,
+          pageSizeOptions: ['10', '20', '50', '100', '200'],
+        }}
       />
       <ModalForm
         width={500}
@@ -212,8 +239,9 @@ const Index: React.FC = () => {
         }}
         onFinish={values => {
           setLoading(true)
+          const url = isEdit ? '/api/editIpRule' : '/api/banIp'
           // @ts-ignore
-          requestPost('/api/banIp', values).then(res => {
+          requestPost(url, values).then(res => {
             if (res.code === 200) {
               message.success(res.message)
               setmodalOpen(false)
@@ -224,22 +252,45 @@ const Index: React.FC = () => {
           })
         }}
       >
+        <ProFormText
+          name="id"
+          hidden
+        />
+        {isEdit ? (
+          <ProFormText
+            name="ips"
+            label="封禁IP"
+            placeholder="封禁IP"
+            disabled
+            readonly
+            transform={undefined}
+          />
+        ) : (
+          <ProFormTextArea
+            rules={[
+              {
+                required: true,
+                message: "请输入IP地址",
+              },
+            ]}
+            name="ips"
+            label="封禁IP"
+            placeholder="请输入IP地址，多个IP请用逗号或换行符分隔"
+            fieldProps={{
+              autoSize: {minRows: 2, maxRows: 6}
+            }}
+            transform={(value) => ({
+              ips: value.split(/[,\n]/).map(ip => ip.trim()).filter(ip => ip).join(',')
+            })}
+          />
+        )}
         <ProFormTextArea
-          rules={[
-            {
-              required: true,
-              message: "请输入IP地址",
-            },
-          ]}
-          name="ips"
-          label="封禁IP"
-          placeholder="请输入IP地址，多个IP请用逗号或换行符分隔"
+          name="reason"
+          label="封禁原因"
+          placeholder="请输入封禁原因"
           fieldProps={{
-            autoSize: {minRows: 2, maxRows: 6}
+            autoSize: {minRows: 1, maxRows: 4}
           }}
-          transform={(value) => ({
-            ips: value.split(/[,\n]/).map(ip => ip.trim()).filter(ip => ip).join(',')
-          })}
         />
         <ProFormSelect
           name="protocol"

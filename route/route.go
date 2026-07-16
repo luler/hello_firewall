@@ -40,6 +40,7 @@ func InitRouter(e *gin.Engine) {
 	auth.POST("/banIp", common.BanIp)
 	auth.POST("/unBanIp", common.UnBanIp)
 	auth.POST("/changeStatus", common.ChangeStatus)
+	auth.POST("/editIpRule", common.EditIpRule)
 	auth.GET("/getBanIpList", common.GetBanIpList)
 	//用户各相关
 	auth.POST("/resetPassword", controller.ResetPassword)

@@ -9,10 +9,11 @@ import (
 	"gin_base/app/helper/response_helper"
 	"gin_base/app/logic"
 	"gin_base/app/model"
-	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 	"strings"
 	"time"
+
+	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 // @Summary 封禁ip接口
@@ -180,6 +181,86 @@ func ChangeStatus(c *gin.Context) {
 	})
 
 	response_helper.Success(c, "修改状态成功")
+}
+
+// 编辑封禁规则接口
+// @Summary 编辑封禁规则
+// @Description  编辑封禁规则（IP不可修改，仅可修改协议、端口、过期时间、封禁原因）
+// @Tags IP封禁相关接口
+// @Accept x-www-form-urlencoded
+// @Produce  json
+// @Param Authorization header string true "Bearer token"
+// @Param id formData int true "规则id"
+// @Param protocol formData string false "封禁协议,不传-全部协议，指定协议：tcp udp icmp"
+// @Param port formData int false "封禁端口号,0-全端口（默认），1-65535（指定端口，传封禁协议时才有效）"
+// @Param expiredAt formData int false "过期时间，不传则无过期时间，格式：2006-01-02 15:04:05"
+// @Param reason formData string false "封禁原因"
+// @Success 200
+// @Router /api/editIpRule [post]
+func EditIpRule(c *gin.Context) {
+	type Param struct {
+		Id        int    `validate:"required" label:"id"`
+		Protocol  string `validate:"omitempty,oneof=tcp udp icmp" label:"封禁协议"`
+		Port      int    `validate:"omitempty,gte=1,lte=65535" label:"封禁端口号"`
+		ExpiredAt string `validate:"omitempty,datetime=2006-01-02 15:04:05" label:"过期时间"`
+		Reason    string `validate:"omitempty,max=255" label:"封禁原因"`
+	}
+	var param Param
+	request_helper.InputStruct(c, &param)
+	//icmp、不设置协议不支持设置端口
+	if param.Protocol == "icmp" || param.Protocol == "" {
+		param.Port = 0
+	}
+	//过期时间校验
+	var expTime time.Time
+	if param.ExpiredAt != "" {
+		expTime, _ = time.ParseInLocation("2006-01-02 15:04:05", param.ExpiredAt, time.Local)
+		if expTime.Before(time.Now()) {
+			exception_helper.CommonException("过期时间必须大于当前时间")
+		}
+	}
+
+	err := db_helper.Db().Transaction(func(tx *gorm.DB) error {
+		//查询原规则
+		var rule model.IPRule
+		if err := tx.Where("id = ?", param.Id).First(&rule).Error; err != nil {
+			return fmt.Errorf("IP规则不存在")
+		}
+		//冲突校验：改协议/端口后不能与其它记录撞车（IP+协议+端口唯一）
+		var cnt int64
+		tx.Model(&model.IPRule{}).
+			Where("id <> ? AND ip = ? AND protocol = ? AND port = ?", param.Id, rule.IP, param.Protocol, param.Port).
+			Count(&cnt)
+		if cnt > 0 {
+			exception_helper.CommonException("该IP对应的协议+端口组合已存在")
+		}
+		//协议/端口变化会影响iptables规则，启用态需要重建
+		protocolOrPortChanged := rule.Protocol != param.Protocol || rule.Port != param.Port
+		iptablesChanged := rule.Status == 1 && protocolOrPortChanged
+
+		rule.Protocol = param.Protocol
+		rule.Port = param.Port
+		rule.Reason = param.Reason
+		rule.ExpiredAt = expTime.Unix()
+		if err := tx.Save(&rule).Error; err != nil {
+			return fmt.Errorf("保存IP规则失败: %v", err)
+		}
+		//协议/端口变化时旧规则需清理，用RebuildRules先清空再重建最稳妥
+		if iptablesChanged {
+			if err := logic.GetIPTablesManager().RebuildRules(); err != nil {
+				return fmt.Errorf("重建iptables规则失败: %v", err)
+			}
+		} else if rule.Status == 1 {
+			//仅更新原因/过期时间，iptables规则形态不变，幂等重下发一次
+			_ = logic.GetIPTablesManager().ApplyRule(&rule)
+		}
+		return nil
+	})
+
+	if err != nil {
+		exception_helper.CommonException(err.Error())
+	}
+	response_helper.Success(c, "编辑成功")
 }
 
 // 获取ip封禁列表接口
